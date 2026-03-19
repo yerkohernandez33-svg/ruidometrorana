@@ -5,26 +5,9 @@
   <title>Ruidómetro Rana 🐸</title>
   <style>
     body { text-align: center; font-family: Arial; background: #e8f5e9; }
-    #frog { width: 150px; transition: all 0.3s ease; }
-    #scene-wrap {
-      position: relative;
-      display: inline-block;
-      width: 300px;
-      height: 200px;
-    }
-    #sceneBg {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      border-radius: 16px;
-    }
     #frog {
-      position: absolute;
-      width: 130px;
-      left: 50%; bottom: 60px;
-      transform: translateX(-50%);
-      transition: bottom 0.3s ease;
-      z-index: 2;
+      width: 220px;
+      transition: opacity 0.4s ease;
     }
     #msg { font-size: 20px; font-weight: bold; }
     #tachometer-wrap { display: inline-block; margin: 10px auto; }
@@ -45,10 +28,7 @@
 <body>
   <h1>🐸 Protege a la rana</h1>
   <button id="startBtn">Iniciar</button><br><br>
-  <div id="scene-wrap">
-    <canvas id="sceneBg" width="300" height="200"></canvas>
-    <img id="frog" src="rana1.png">
-  </div><br>
+  <img id="frog" src=""><br>
   <div id="tachometer-wrap">
     <div id="pulso"></div>
   </div>
@@ -88,90 +68,46 @@
 
     drawTacho(0);
 
-    // ── ESCENA DE FONDO ────────────────────────────────────────
-    const sc = document.getElementById("sceneBg");
-    const sctx = sc.getContext("2d");
-    const SW = sc.width, SH = sc.height;
-    let waveOffset = 0;
-    let splashParticles = [];
-    let splashActivo = false;
+    // ── SKINS ──────────────────────────────────────────────────
+    const skins = [
+      [
+        "Rana1 skin 1 - fase 1.png",
+        "Rana1 skin 1 - fase 2.png",
+        "Rana1 skin 1 - fase 3.png",
+        "Rana1 skin 1 -fase 4.png"
+      ],
+      [
+        "Rana2 skin 2 - fase 1.png",
+        "Rana2 skin 2 - fase 2.png",
+        "Rana2 skin 2 - fase 3.png",
+        "Rana2 skin 2 - fase 4.png"
+      ],
+      [
+        "Rana3 skin 3 - fase 1.png",
+        "Rana3 skin 3 - fase 2.png",
+        "Rana3 skin 3 - fase 3.png",
+        "Rana3 skin 3 - fase 4.png"
+      ],
+      [
+        "Rana4 skin 4 - fase 1.png",
+        "Rana4 skin 4 - fase 2.png",
+        "Rana4 skin 4 - fase 3.png",
+        "Rana4 skin 4 - fase 4.png"
+      ]
+    ];
 
-    function drawScene() {
-      sctx.clearRect(0, 0, SW, SH);
+    let skinActual = null;
 
-      const sky = sctx.createLinearGradient(0, 0, 0, SH * 0.55);
-      sky.addColorStop(0, "#b3e5fc");
-      sky.addColorStop(1, "#e8f5e9");
-      sctx.fillStyle = sky;
-      sctx.fillRect(0, 0, SW, SH * 0.55);
-
-      const waterY = SH * 0.55;
-      const water = sctx.createLinearGradient(0, waterY, 0, SH);
-      water.addColorStop(0, "#29b6f6");
-      water.addColorStop(1, "#0277bd");
-      sctx.fillStyle = water;
-      sctx.fillRect(0, waterY, SW, SH - waterY);
-
-      sctx.beginPath();
-      sctx.moveTo(0, waterY);
-      for (let x = 0; x <= SW; x += 4) {
-        sctx.lineTo(x, waterY + Math.sin((x + waveOffset) * 0.05) * 4);
-      }
-      sctx.lineTo(SW, SH); sctx.lineTo(0, SH);
-      sctx.closePath();
-      sctx.fillStyle = "rgba(255,255,255,0.15)";
-      sctx.fill();
-      waveOffset += 1.5;
-
-      sctx.beginPath();
-      sctx.ellipse(SW / 2, waterY + 10, 70, 28, 0, 0, Math.PI * 2);
-      const stone = sctx.createRadialGradient(SW/2 - 10, waterY, 5, SW/2, waterY + 10, 70);
-      stone.addColorStop(0, "#a5a5a5");
-      stone.addColorStop(1, "#5a5a5a");
-      sctx.fillStyle = stone;
-      sctx.fill();
-
-      sctx.beginPath();
-      sctx.ellipse(SW / 2, waterY + 4, 40, 10, 0, 0, Math.PI * 2);
-      sctx.fillStyle = "rgba(100,180,60,0.45)";
-      sctx.fill();
-
-      if (splashActivo) {
-        splashParticles.forEach(p => {
-          p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.025;
-          sctx.beginPath();
-          sctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
-          sctx.fillStyle = `rgba(100,200,255,${p.life})`;
-          sctx.fill();
-        });
-        splashParticles = splashParticles.filter(p => p.life > 0);
-        if (splashParticles.length === 0) splashActivo = false;
-      }
-
-      requestAnimationFrame(drawScene);
+    function elegirSkinAleatoria() {
+      const opciones = skins.filter((_, i) => i !== skinActual);
+      const idx = Math.floor(Math.random() * opciones.length);
+      skinActual = skins.indexOf(opciones[idx]);
+      return skins[skinActual];
     }
 
     function triggerSplash() {
-      const cx = SW / 2, cy = SH * 0.55 + 10;
-      for (let i = 0; i < 22; i++) {
-        const angle = (Math.PI * 2 / 22) * i - Math.PI;
-        const speed = 1.5 + Math.random() * 3;
-        splashParticles.push({ x: cx, y: cy,
-          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
-          r: 3 + Math.random() * 4, life: 1 });
-      }
-      splashActivo = true;
-      document.getElementById("frog").style.bottom = "30px";
-      document.getElementById("frog").style.opacity = "0.4";
+      document.getElementById("frog").style.opacity = "0.3";
     }
-
-    function resetScene() {
-      document.getElementById("frog").style.bottom = "60px";
-      document.getElementById("frog").style.opacity = "1";
-      splashParticles = []; splashActivo = false;
-    }
-
-    drawScene();
 
     // ── SENSIBILIDAD ───────────────────────────────────────────
     const slider = document.getElementById("sensiSlider");
@@ -199,9 +135,9 @@
         document.getElementById("startBtn").innerText = "Iniciar";
         document.getElementById("msg").innerText = "Presiona iniciar";
         document.getElementById("contador").innerText = "Silencio: 0s";
-        document.getElementById("frog").src = "rana1.png";
+        document.getElementById("frog").src = "";
+        document.getElementById("frog").style.opacity = "1";
         document.getElementById("benitoBtn").style.display = "none";
-        resetScene();
         drawTacho(0);
         return;
       }
@@ -210,6 +146,8 @@
         streamActivo = stream;
         jugandoGlobal = true;
         document.getElementById("startBtn").innerText = "😴 Descansar";
+
+        const skin = elegirSkinAleatoria();
 
         const audioContext = new AudioContext();
         const mic = audioContext.createMediaStreamSource(stream);
@@ -228,7 +166,8 @@
         let jugando = true;
         let sonidoYa = false;
 
-        const tiempoParaCalmar = { 2: 10, 3: 20 };
+        // fase 2 → 1: 10s | fase 3 → 1: 15s
+        const tiempoParaCalmar = { 2: 10, 3: 15 };
 
         function update() {
           if (!jugandoGlobal) return;
@@ -261,10 +200,10 @@
             contador.innerText = "Silencio: 0s";
           }
 
-          if (nivel === 1) { frog.src = "rana1.png"; msg.innerText = "Silencio 😊"; }
-          else if (nivel === 2) { frog.src = "rana2.png"; msg.innerText = "Cuidado 👀 — 10s de silencio"; }
+          if (nivel === 1) { frog.src = skin[0]; msg.innerText = "Silencio 😊"; }
+          else if (nivel === 2) { frog.src = skin[1]; msg.innerText = "Cuidado 👀 — 10s de silencio"; }
           else if (nivel === 3) {
-            frog.src = "rana4.png";
+            frog.src = skin[3];
             msg.innerText = "🐸 ¡Se escapó!";
             if (!sonidoYa) { croacSound.play(); sonidoYa = true; triggerSplash(); }
             jugando = false;
@@ -278,11 +217,11 @@
 
         benitoBtn.onclick = function () {
           benitoBtn.style.display = "none";
-          frog.src = "rana3.png";
+          frog.src = skin[2];
           msg.innerText = "🚨 Benito viene en camino...";
           let tiempo = 120;
           let intervalo = setInterval(() => {
-            contador.innerText = "Llegada en: " + tiempo + "s";
+            contador.innerText = "🔍 Buscando... " + tiempo + "s";
             tiempo--;
             if (tiempo <= 0) {
               clearInterval(intervalo);
@@ -290,10 +229,10 @@
               tiempoSilencio = 0;
               jugando = true;
               sonidoYa = false;
-              frog.src = "rana1.png";
+              frog.src = skin[0];
+              frog.style.opacity = "1";
               msg.innerText = "🐸 Benito la trajo de vuelta. Silencio 😊";
               contador.innerText = "Silencio: 0s";
-              resetScene();
               update();
             }
           }, 1000);
