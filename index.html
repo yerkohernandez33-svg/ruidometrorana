@@ -174,40 +174,69 @@ function startApp() {
       let percent = Math.min(volume, 100);
       levelBar.style.width = percent + "%";
 
-      if (volume < 30) {
-        levelBar.style.background = "green";
-        frog.src = "rana1.png";
-        frog.style.top = "0px";
-        frog.style.display = "block";
-        msg.innerText = "Silencio 😊";
-        alreadyPlayed = false;
+      let estadoActual = "";
 
-      } else if (volume < 60) {
-        levelBar.style.background = "orange";
-        frog.src = "rana2.png";
-        frog.style.top = "-30px";
-        msg.innerText = "Cuidado 😐";
+function update() {
+  analyser.getByteFrequencyData(data);
+  let volume = data.reduce((a,b) => a+b) / data.length;
 
-      } else if (volume < 80) {
-        levelBar.style.background = "red";
-        frog.src = "rana3.png";
-        frog.style.top = "-80px";
-        msg.innerText = "¡Mucho ruido! 😡";
+  let percent = Math.min(volume, 100);
+  levelBar.style.width = percent + "%";
 
-      } else {
-        frog.src = "rana4.png";
-        frog.style.top = "-200px";
-        msg.innerText = "La rana se fue 😭";
+  let nuevoEstado = "";
 
-        if (!alreadyPlayed) {
-          croacSound.play();
-          alreadyPlayed = true;
-        }
+  if (volume < 30) {
+    nuevoEstado = "tranquilo";
+    levelBar.style.background = "green";
+
+  } else if (volume < 60) {
+    nuevoEstado = "alerta";
+    levelBar.style.background = "orange";
+
+  } else if (volume < 80) {
+    nuevoEstado = "salto";
+    levelBar.style.background = "red";
+
+  } else {
+    nuevoEstado = "huida";
+    levelBar.style.background = "darkred";
+  }
+
+  // 👇 SOLO CAMBIA SI EL ESTADO CAMBIA
+  if (nuevoEstado !== estadoActual) {
+    estadoActual = nuevoEstado;
+
+    if (estadoActual === "tranquilo") {
+      frog.src = "rana1.png";
+      frog.style.top = "0px";
+      frog.style.display = "block";
+      msg.innerText = "Silencio 😊";
+      alreadyPlayed = false;
+
+    } else if (estadoActual === "alerta") {
+      frog.src = "rana2.png";
+      frog.style.top = "-20px";
+      msg.innerText = "Cuidado 😐";
+
+    } else if (estadoActual === "salto") {
+      frog.src = "rana3.png";
+      frog.style.top = "-80px";
+      msg.innerText = "¡Mucho ruido! 😡";
+
+    } else if (estadoActual === "huida") {
+      frog.src = "rana4.png";
+      frog.style.top = "-200px";
+      msg.innerText = "La rana se fue 😭";
+
+      if (!alreadyPlayed) {
+        croacSound.play();
+        alreadyPlayed = true;
       }
-
-      requestAnimationFrame(update);
     }
+  }
 
+  requestAnimationFrame(update);
+}
     update();
 
   })
