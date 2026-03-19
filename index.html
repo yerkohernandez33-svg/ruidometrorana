@@ -31,19 +31,11 @@
     height: 100%;
     width: 0%;
     background: green;
-    transition: width 0.1s;
   }
 
   #msg {
     font-size: 20px;
     font-weight: bold;
-  }
-
-  button {
-    padding: 10px 20px;
-    font-size: 16px;
-    margin-top: 10px;
-    cursor: pointer;
   }
 </style>
 </head>
@@ -73,8 +65,6 @@
 <script>
 document.getElementById("startBtn").onclick = function() {
 
-  alert("Iniciando..."); // 👈 prueba visual
-
   navigator.mediaDevices.getUserMedia({ audio: true })
   .then(function(stream) {
 
@@ -97,6 +87,10 @@ document.getElementById("startBtn").onclick = function() {
     let jugando = true;
     let sonidoYa = false;
 
+    // 🧊 CONTROL DE FREEZE
+    let congelado = false;
+    let tiempoFreeze = 0;
+
     function update() {
 
       analyser.getByteFrequencyData(data);
@@ -106,24 +100,54 @@ document.getElementById("startBtn").onclick = function() {
 
       if (!jugando) return;
 
+      // 🧊 SI ESTÁ CONGELADO
+      if (congelado) {
+        tiempoFreeze -= 0.016;
+
+        contador.innerText = "⏳ Espera: " + tiempoFreeze.toFixed(1) + "s";
+
+        if (tiempoFreeze <= 0) {
+          congelado = false;
+        }
+
+        requestAnimationFrame(update);
+        return;
+      }
+
+      // 🔊 SUBE NIVEL
       if (volume > 70 && nivel < 4) {
         nivel++;
         tiempoSilencio = 0;
+
+        // ACTIVAR FREEZE SEGÚN NIVEL
+        if (nivel === 2) {
+          congelado = true;
+          tiempoFreeze = 10;
+        }
+
+        if (nivel === 3) {
+          congelado = true;
+          tiempoFreeze = 20;
+        }
       }
 
+      // 🤫 BAJA NIVEL
       if (volume < 30 && nivel > 1) {
         tiempoSilencio += 0.016;
+
         contador.innerText = "Silencio: " + tiempoSilencio.toFixed(1) + "s";
 
         if (tiempoSilencio >= 20) {
           nivel--;
           tiempoSilencio = 0;
         }
+
       } else {
         tiempoSilencio = 0;
         contador.innerText = "Silencio: 0s";
       }
 
+      // 🎭 VISUAL
       if (nivel === 1) {
         frog.src = "rana1.png";
         msg.innerText = "Silencio 😊";
@@ -154,34 +178,31 @@ document.getElementById("startBtn").onclick = function() {
 
     update();
 
+    // 🚨 BOTÓN BENITO (2 MINUTOS)
     benitoBtn.onclick = function() {
-      alert("🚨 Benito ha sido llamado 😈");
-      location.reload();
+      msg.innerText = "🚨 Benito viene en camino...";
+
+      let tiempo = 120;
+
+      let intervalo = setInterval(() => {
+        contador.innerText = "Llegada en: " + tiempo + "s";
+        tiempo--;
+
+        if (tiempo <= 0) {
+          clearInterval(intervalo);
+          msg.innerText = "💀 Benito llegó...";
+        }
+
+      }, 1000);
     };
 
   })
   .catch(function(err) {
-    alert("ERROR: Permite el micrófono");
+    alert("Permite el micrófono");
     console.log(err);
   });
 
 };
-
-    update();
-
-    // 🚨 BOTÓN BENITO
-    benitoBtn.onclick = () => {
-      alert("🚨 Benito ha sido llamado 😈");
-      location.reload();
-    };
-
-  })
-  .catch(err => {
-    alert("Debes permitir el micrófono");
-    console.error(err);
-  });
-}
-
 </script>
 
 </body>
