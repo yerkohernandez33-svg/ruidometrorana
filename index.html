@@ -5,115 +5,10 @@
 <title>Ruidómetro Rana 🐸</title>
 
 <style>
-  body {<script>
-document.getElementById("startBtn").addEventListener("click", startApp);
-
-function startApp() {
-
-  alert("Iniciando micrófono..."); // 👈 prueba visual
-
-  navigator.mediaDevices.getUserMedia({ audio: true })
-  .then(stream => {
-
-    const audioContext = new AudioContext();
-    const mic = audioContext.createMediaStreamSource(stream);
-    const analyser = audioContext.createAnalyser();
-    mic.connect(analyser);
-
-    const data = new Uint8Array(analyser.frequencyBinCount);
-
-    let frog = document.getElementById("frog");
-    let levelBar = document.getElementById("level");
-    let msg = document.getElementById("msg");
-    let croacSound = document.getElementById("croac");
-
-    let alreadyPlayed = false;
-
-    function update() {
-     let estadoActual = "";
-
-function update() {
-  analyser.getByteFrequencyData(data);
-  let volume = data.reduce((a,b) => a+b) / data.length;
-
-  let percent = Math.min(volume, 100);
-  levelBar.style.width = percent + "%";
-
-  let nuevoEstado = "";
-
-  // DEFINICIÓN DE ESTADOS
-  if (volume < 30) {
-    nuevoEstado = "silencio";
-    levelBar.style.background = "green";
-
-  } else if (volume < 55) {
-    nuevoEstado = "cuidado";
-    levelBar.style.background = "yellow";
-
-  } else if (volume < 75) {
-    nuevoEstado = "peligro";
-    levelBar.style.background = "orange";
-
-  } else {
-    nuevoEstado = "huida";
-    levelBar.style.background = "red";
-  }
-
-  // SOLO CAMBIA SI CAMBIA EL ESTADO
-  if (nuevoEstado !== estadoActual) {
-    estadoActual = nuevoEstado;
-
-    if (estadoActual === "silencio") {
-      frog.src = "rana1.png";
-      frog.style.top = "0px";
-      frog.style.display = "block";
-      msg.innerText = "Silencio 😊";
-      alreadyPlayed = false;
-
-    } else if (estadoActual === "cuidado") {
-      frog.src = "rana2.png";
-      frog.style.top = "-10px";
-      msg.innerText = "Cuidado 👀";
-
-    } else if (estadoActual === "peligro") {
-      frog.src = "rana3.png";
-      frog.style.top = "-60px";
-      msg.innerText = "Se va a arrancar 😰";
-
-    } else if (estadoActual === "huida") {
-      frog.src = "rana4.png";
-      frog.style.top = "-200px";
-      msg.innerText = "Se fue 😭";
-
-      if (!alreadyPlayed) {
-        croacSound.play();
-        alreadyPlayed = true;
-        document.getElementById("benitoBtn").onclick = () => {
-  alert("🚨 Benito ha sido llamado 😈");
-};
-      }
-    }
-  }
-
-  requestAnimationFrame(update);
-}
-
-    update();
-
-  })
-  .catch(err => {
-    alert("ERROR: " + err.message);
-    console.error(err);
-  });
-}
-</script>
+  body {
     text-align: center;
     font-family: Arial;
     background: #e8f5e9;
-  }
-
-  h1 {
-    margin-top: 20px;
   }
 
   #frog {
@@ -168,17 +63,18 @@ function update() {
 </div>
 
 <p id="msg">Presiona iniciar</p>
-  <h2 id="contador">Silencio: 0s</h2>
+
+<h2 id="contador">Silencio: 0s</h2>
+
 <button id="benitoBtn" style="display:none;">🚨 Llamar a Benito</button>
 
 <audio id="croac" src="croac.mp3"></audio>
 
 <script>
+
 document.getElementById("startBtn").addEventListener("click", startApp);
 
 function startApp() {
-
-  alert("Iniciando micrófono..."); // 👈 prueba visual
 
   navigator.mediaDevices.getUserMedia({ audio: true })
   .then(stream => {
@@ -194,8 +90,15 @@ function startApp() {
     let levelBar = document.getElementById("level");
     let msg = document.getElementById("msg");
     let croacSound = document.getElementById("croac");
+    let contador = document.getElementById("contador");
+    let benitoBtn = document.getElementById("benitoBtn");
 
     let alreadyPlayed = false;
+
+    // 🔥 SISTEMA
+    let nivel = 1;
+    let tiempoSilencio = 0;
+    let jugando = true;
 
     function update() {
       analyser.getByteFrequencyData(data);
@@ -204,80 +107,82 @@ function startApp() {
       let percent = Math.min(volume, 100);
       levelBar.style.width = percent + "%";
 
-      let estadoActual = "";
+      if (!jugando) return;
 
-function update() {
-  function update() {
-  analyser.getByteFrequencyData(data);
-  let volume = data.reduce((a,b) => a+b) / data.length;
+      // 🔊 SUBE NIVEL
+      if (volume > 70 && nivel < 4) {
+        nivel++;
+        tiempoSilencio = 0;
+      }
 
-  let percent = Math.min(volume, 100);
-  levelBar.style.width = percent + "%";
+      // 🤫 BAJA NIVEL CON SILENCIO
+      if (volume < 30 && nivel > 1) {
+        tiempoSilencio += 0.016;
 
-  if (!jugando) return;
+        contador.innerText = "Silencio: " + tiempoSilencio.toFixed(1) + "s";
 
-  // 🔊 SUBE DE NIVEL SI HAY RUIDO
-  if (volume > 70 && nivel < 4) {
-    nivel++;
-    tiempoSilencio = 0;
-  }
+        if (tiempoSilencio >= 20) {
+          nivel--;
+          tiempoSilencio = 0;
+        }
 
-  // 🤫 SI HAY SILENCIO, CUENTA
-  if (volume < 30 && nivel > 1) {
-    tiempoSilencio += 0.016;
-    document.getElementById("contador").innerText = 
-      "Silencio: " + tiempoSilencio.toFixed(1) + "s";
+      } else {
+        tiempoSilencio = 0;
+        contador.innerText = "Silencio: 0s";
+      }
 
-    if (tiempoSilencio >= 20) {
-      nivel--;
-      tiempoSilencio = 0;
+      // 🎭 ESTADOS VISUALES
+      if (nivel === 1) {
+        frog.src = "rana1.png";
+        frog.style.top = "0px";
+        msg.innerText = "Silencio 😊";
+        levelBar.style.background = "green";
+
+      } else if (nivel === 2) {
+        frog.src = "rana2.png";
+        frog.style.top = "-20px";
+        msg.innerText = "Cuidado 👀";
+        levelBar.style.background = "yellow";
+
+      } else if (nivel === 3) {
+        frog.src = "rana3.png";
+        frog.style.top = "-80px";
+        msg.innerText = "Se va a arrancar 😰";
+        levelBar.style.background = "orange";
+
+      } else if (nivel === 4) {
+        frog.src = "rana4.png";
+        frog.style.top = "-200px";
+        msg.innerText = "💀 Se fue...";
+        levelBar.style.background = "red";
+
+        if (!alreadyPlayed) {
+          croacSound.play();
+          alreadyPlayed = true;
+        }
+
+        jugando = false;
+        benitoBtn.style.display = "inline-block";
+      }
+
+      requestAnimationFrame(update);
     }
-  } else {
-    tiempoSilencio = 0;
-    document.getElementById("contador").innerText = "Silencio: 0s";
-  }
 
-  // 🎭 CAMBIO VISUAL SEGÚN NIVEL
-  if (nivel === 1) {
-    frog.src = "rana1.png";
-    frog.style.top = "0px";
-    msg.innerText = "Silencio 😊";
-
-  } else if (nivel === 2) {
-    frog.src = "rana2.png";
-    frog.style.top = "-20px";
-    msg.innerText = "Cuidado 👀";
-
-  } else if (nivel === 3) {
-    frog.src = "rana3.png";
-    frog.style.top = "-80px";
-    msg.innerText = "Se va a arrancar 😰";
-
-  } else if (nivel === 4) {
-    frog.src = "rana4.png";
-    frog.style.top = "-200px";
-    msg.innerText = "💀 Se fue...";
-
-    if (!alreadyPlayed) {
-      croacSound.play();
-      alreadyPlayed = true;
-    }
-
-    jugando = false;
-
-    document.getElementById("benitoBtn").style.display = "inline-block";
-  }
-
-  requestAnimationFrame(update);
-}
     update();
+
+    // 🚨 BOTÓN BENITO
+    benitoBtn.onclick = () => {
+      alert("🚨 Benito ha sido llamado 😈");
+      location.reload();
+    };
 
   })
   .catch(err => {
-    alert("ERROR: " + err.message);
+    alert("Debes permitir el micrófono");
     console.error(err);
   });
 }
+
 </script>
 
 </body>
