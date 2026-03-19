@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Ruidómetro Rana 🐸</title>
-
 <style>
   body {
     text-align: center;
@@ -13,33 +12,41 @@
 
   #frog {
     width: 150px;
-    position: relative;
-    top: 0;
     transition: all 0.3s ease;
-  }
-
-  #bar {
-    width: 300px;
-    height: 20px;
-    background: lightgray;
-    margin: 20px auto;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
-  #level {
-    height: 100%;
-    width: 0%;
-    background: green;
   }
 
   #msg {
     font-size: 20px;
     font-weight: bold;
   }
+
+  #tachometer-wrap {
+    display: inline-block;
+    margin: 10px auto;
+  }
+
+  #sensi-wrap {
+    margin: 8px auto;
+    width: 300px;
+  }
+
+  #sensi-wrap label {
+    font-size: 14px;
+    color: #5d4037;
+    font-weight: bold;
+  }
+
+  #sensiSlider {
+    width: 100%;
+    accent-color: #8d6e63;
+  }
+
+  #sensi-info {
+    font-size: 13px;
+    color: #795548;
+  }
 </style>
 </head>
-
 <body>
 
 <h1>🐸 Protege a la rana</h1>
@@ -50,12 +57,19 @@
 
 <img id="frog" src="rana1.png">
 
-<div id="bar">
-  <div id="level"></div>
+<br>
+
+<div id="tachometer-wrap">
+  <canvas id="tacho" width="300" height="180"></canvas>
+</div>
+
+<div id="sensi-wrap">
+  <label for="sensiSlider">🎚️ Sensibilidad del micrófono</label><br>
+  <input type="range" id="sensiSlider" min="10" max="90" value="70">
+  <div id="sensi-info">Umbral: <span id="sensiVal">70</span> — Ambiente: <span id="ambienteLabel">Normal</span></div>
 </div>
 
 <p id="msg">Presiona iniciar</p>
-
 <h2 id="contador">Silencio: 0s</h2>
 
 <button id="benitoBtn" style="display:none;">🚨 Llamar a Benito</button>
@@ -63,10 +77,158 @@
 <audio id="croac" src="croac.mp3"></audio>
 
 <script>
+// ── TACÓMETRO ──────────────────────────────────────────────
+const canvas = document.getElementById("tacho");
+const ctx = canvas.getContext("2d");
+const CX = canvas.width / 2;
+const CY = canvas.height - 20;
+const R = 130;
+
+function drawTacho(volume) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Fondo madera
+  const wood = ctx.createRadialGradient(CX, CY, 10, CX, CY, R + 20);
+  wood.addColorStop(0, "#d7a96a");
+  wood.addColorStop(0.4, "#b5722a");
+  wood.addColorStop(0.7, "#8d5524");
+  wood.addColorStop(1, "#5d3310");
+  ctx.beginPath();
+  ctx.arc(CX, CY, R + 20, Math.PI, 0);
+  ctx.closePath();
+  ctx.fillStyle = wood;
+  ctx.fill();
+
+  // Vetas de madera
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.arc(CX + (i - 3) * 12, CY + 10, R + 15 - i * 3, Math.PI, 0);
+    ctx.strokeStyle = "rgba(0,0,0,0.06)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  // Borde metálico
+  ctx.beginPath();
+  ctx.arc(CX, CY, R + 18, Math.PI, 0);
+  ctx.strokeStyle = "#aaa";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // Arco de zonas (verde → amarillo → rojo)
+  const zones = [
+    { from: 0,   to: 0.45, color: "#4caf50" },
+    { from: 0.45, to: 0.70, color: "#ffeb3b" },
+    { from: 0.70, to: 1.0,  color: "#f44336" }
+  ];
+  zones.forEach(z => {
+    ctx.beginPath();
+    ctx.arc(CX, CY, R - 10,
+      Math.PI + z.from * Math.PI,
+      Math.PI + z.to * Math.PI
+    );
+    ctx.strokeStyle = z.color;
+    ctx.lineWidth = 18;
+    ctx.stroke();
+  });
+
+  // Marcas y números
+  for (let i = 0; i <= 10; i++) {
+    const angle = Math.PI + (i / 10) * Math.PI;
+    const isMajor = i % 2 === 0;
+    const r1 = R - 30;
+    const r2 = isMajor ? R - 48 : R - 40;
+    ctx.beginPath();
+    ctx.moveTo(CX + r1 * Math.cos(angle), CY + r1 * Math.sin(angle));
+    ctx.lineTo(CX + r2 * Math.cos(angle), CY + r2 * Math.sin(angle));
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = isMajor ? 2.5 : 1.5;
+    ctx.stroke();
+
+    if (isMajor) {
+      const nr = R - 60;
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 11px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(i * 10, CX + nr * Math.cos(angle), CY + nr * Math.sin(angle));
+    }
+  }
+
+  // Etiqueta central
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 13px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("RUIDO", CX, CY - 30);
+
+  // Aguja
+  const clampedVol = Math.min(Math.max(volume, 0), 100);
+  const needleAngle = Math.PI + (clampedVol / 100) * Math.PI;
+  ctx.beginPath();
+  ctx.moveTo(CX, CY);
+  ctx.lineTo(
+    CX + (R - 25) * Math.cos(needleAngle),
+    CY + (R - 25) * Math.sin(needleAngle)
+  );
+  ctx.strokeStyle = "#222";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.stroke();
+
+  // Pivote
+  ctx.beginPath();
+  ctx.arc(CX, CY, 8, 0, Math.PI * 2);
+  const pivot = ctx.createRadialGradient(CX - 2, CY - 2, 1, CX, CY, 8);
+  pivot.addColorStop(0, "#eee");
+  pivot.addColorStop(1, "#555");
+  ctx.fillStyle = pivot;
+  ctx.fill();
+}
+
+drawTacho(0);
+
+// ── SENSIBILIDAD ───────────────────────────────────────────
+const slider = document.getElementById("sensiSlider");
+const sensiVal = document.getElementById("sensiVal");
+const ambienteLabel = document.getElementById("ambienteLabel");
+let umbral = 70;
+
+slider.oninput = function() {
+  umbral = parseInt(this.value);
+  sensiVal.innerText = umbral;
+  if (umbral <= 30) ambienteLabel.innerText = "Muy silencioso";
+  else if (umbral <= 50) ambienteLabel.innerText = "Tranquilo";
+  else if (umbral <= 70) ambienteLabel.innerText = "Normal";
+  else ambienteLabel.innerText = "Ruidoso";
+};
+
+// ── LÓGICA PRINCIPAL ───────────────────────────────────────
+let streamActivo = null;
+let jugandoGlobal = false;
+
 document.getElementById("startBtn").onclick = function() {
+
+  if (jugandoGlobal) {
+    jugandoGlobal = false;
+    if (streamActivo) {
+      streamActivo.getTracks().forEach(t => t.stop());
+      streamActivo = null;
+    }
+    document.getElementById("startBtn").innerText = "Iniciar";
+    document.getElementById("msg").innerText = "Presiona iniciar";
+    document.getElementById("contador").innerText = "Silencio: 0s";
+    document.getElementById("frog").src = "rana1.png";
+    document.getElementById("benitoBtn").style.display = "none";
+    drawTacho(0);
+    return;
+  }
 
   navigator.mediaDevices.getUserMedia({ audio: true })
   .then(function(stream) {
+
+    streamActivo = stream;
+    jugandoGlobal = true;
+    document.getElementById("startBtn").innerText = "😴 Descansar";
 
     const audioContext = new AudioContext();
     const mic = audioContext.createMediaStreamSource(stream);
@@ -76,7 +238,6 @@ document.getElementById("startBtn").onclick = function() {
     const data = new Uint8Array(analyser.frequencyBinCount);
 
     let frog = document.getElementById("frog");
-    let levelBar = document.getElementById("level");
     let msg = document.getElementById("msg");
     let croacSound = document.getElementById("croac");
     let contador = document.getElementById("contador");
@@ -86,89 +247,53 @@ document.getElementById("startBtn").onclick = function() {
     let tiempoSilencio = 0;
     let jugando = true;
     let sonidoYa = false;
-
-    // 🧊 CONTROL DE FREEZE
     let congelado = false;
     let tiempoFreeze = 0;
 
     function update() {
+      if (!jugandoGlobal) return;
 
       analyser.getByteFrequencyData(data);
-      let volume = data.reduce((a,b) => a+b) / data.length;
+      let volume = data.reduce((a, b) => a + b) / data.length;
 
-      levelBar.style.width = Math.min(volume,100) + "%";
+      drawTacho(volume);
 
-      if (!jugando) return;
+      if (!jugando) { requestAnimationFrame(update); return; }
 
-      // 🧊 SI ESTÁ CONGELADO
       if (congelado) {
         tiempoFreeze -= 0.016;
-
         contador.innerText = "⏳ Espera: " + tiempoFreeze.toFixed(1) + "s";
-
-        if (tiempoFreeze <= 0) {
-          congelado = false;
-        }
-
+        if (tiempoFreeze <= 0) congelado = false;
         requestAnimationFrame(update);
         return;
       }
 
-      // 🔊 SUBE NIVEL
-      if (volume > 70 && nivel < 4) {
+      // umbral ajustable para subir nivel
+      if (volume > umbral && nivel < 4) {
         nivel++;
         tiempoSilencio = 0;
-
-        // ACTIVAR FREEZE SEGÚN NIVEL
-        if (nivel === 2) {
-          congelado = true;
-          tiempoFreeze = 10;
-        }
-
-        if (nivel === 3) {
-          congelado = true;
-          tiempoFreeze = 20;
-        }
+        if (nivel === 2) { congelado = true; tiempoFreeze = 10; }
+        if (nivel === 3) { congelado = true; tiempoFreeze = 20; }
       }
 
-      // 🤫 BAJA NIVEL
-      if (volume < 30 && nivel > 1) {
+      // umbral bajo = umbral * 0.43 (proporcional)
+      const umbralBajo = umbral * 0.43;
+      if (volume < umbralBajo && nivel > 1) {
         tiempoSilencio += 0.016;
-
         contador.innerText = "Silencio: " + tiempoSilencio.toFixed(1) + "s";
-
-        if (tiempoSilencio >= 20) {
-          nivel--;
-          tiempoSilencio = 0;
-        }
-
+        if (tiempoSilencio >= 20) { nivel--; tiempoSilencio = 0; }
       } else {
         tiempoSilencio = 0;
         contador.innerText = "Silencio: 0s";
       }
 
-      // 🎭 VISUAL
-      if (nivel === 1) {
-        frog.src = "rana1.png";
-        msg.innerText = "Silencio 😊";
-
-      } else if (nivel === 2) {
-        frog.src = "rana2.png";
-        msg.innerText = "Cuidado 👀";
-
-      } else if (nivel === 3) {
-        frog.src = "rana3.png";
-        msg.innerText = "Se va a arrancar 😰";
-
-      } else if (nivel === 4) {
+      if (nivel === 1) { frog.src = "rana1.png"; msg.innerText = "Silencio 😊"; }
+      else if (nivel === 2) { frog.src = "rana2.png"; msg.innerText = "Cuidado 👀"; }
+      else if (nivel === 3) { frog.src = "rana3.png"; msg.innerText = "Se va a arrancar 😰"; }
+      else if (nivel === 4) {
         frog.src = "rana4.png";
         msg.innerText = "💀 Se fue...";
-
-        if (!sonidoYa) {
-          croacSound.play();
-          sonidoYa = true;
-        }
-
+        if (!sonidoYa) { croacSound.play(); sonidoYa = true; }
         jugando = false;
         benitoBtn.style.display = "block";
       }
@@ -178,21 +303,16 @@ document.getElementById("startBtn").onclick = function() {
 
     update();
 
-    // 🚨 BOTÓN BENITO (2 MINUTOS)
     benitoBtn.onclick = function() {
       msg.innerText = "🚨 Benito viene en camino...";
-
       let tiempo = 120;
-
       let intervalo = setInterval(() => {
         contador.innerText = "Llegada en: " + tiempo + "s";
         tiempo--;
-
         if (tiempo <= 0) {
           clearInterval(intervalo);
           msg.innerText = "💀 Benito llegó...";
         }
-
       }, 1000);
     };
 
@@ -201,9 +321,7 @@ document.getElementById("startBtn").onclick = function() {
     alert("Permite el micrófono");
     console.log(err);
   });
-
 };
 </script>
-
 </body>
 </html>
