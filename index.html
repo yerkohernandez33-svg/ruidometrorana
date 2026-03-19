@@ -71,13 +71,12 @@
 <audio id="croac" src="croac.mp3"></audio>
 
 <script>
+document.getElementById("startBtn").onclick = function() {
 
-document.getElementById("startBtn").addEventListener("click", startApp);
-
-function startApp() {
+  alert("Iniciando..."); // 👈 prueba visual
 
   navigator.mediaDevices.getUserMedia({ audio: true })
-  .then(stream => {
+  .then(function(stream) {
 
     const audioContext = new AudioContext();
     const mic = audioContext.createMediaStreamSource(stream);
@@ -93,80 +92,81 @@ function startApp() {
     let contador = document.getElementById("contador");
     let benitoBtn = document.getElementById("benitoBtn");
 
-    let alreadyPlayed = false;
-
-    // 🔥 SISTEMA
     let nivel = 1;
     let tiempoSilencio = 0;
     let jugando = true;
+    let sonidoYa = false;
 
     function update() {
+
       analyser.getByteFrequencyData(data);
       let volume = data.reduce((a,b) => a+b) / data.length;
 
-      let percent = Math.min(volume, 100);
-      levelBar.style.width = percent + "%";
+      levelBar.style.width = Math.min(volume,100) + "%";
 
       if (!jugando) return;
 
-      // 🔊 SUBE NIVEL
       if (volume > 70 && nivel < 4) {
         nivel++;
         tiempoSilencio = 0;
       }
 
-      // 🤫 BAJA NIVEL CON SILENCIO
       if (volume < 30 && nivel > 1) {
         tiempoSilencio += 0.016;
-
         contador.innerText = "Silencio: " + tiempoSilencio.toFixed(1) + "s";
 
         if (tiempoSilencio >= 20) {
           nivel--;
           tiempoSilencio = 0;
         }
-
       } else {
         tiempoSilencio = 0;
         contador.innerText = "Silencio: 0s";
       }
 
-      // 🎭 ESTADOS VISUALES
       if (nivel === 1) {
         frog.src = "rana1.png";
-        frog.style.top = "0px";
         msg.innerText = "Silencio 😊";
-        levelBar.style.background = "green";
 
       } else if (nivel === 2) {
         frog.src = "rana2.png";
-        frog.style.top = "-20px";
         msg.innerText = "Cuidado 👀";
-        levelBar.style.background = "yellow";
 
       } else if (nivel === 3) {
         frog.src = "rana3.png";
-        frog.style.top = "-80px";
         msg.innerText = "Se va a arrancar 😰";
-        levelBar.style.background = "orange";
 
       } else if (nivel === 4) {
         frog.src = "rana4.png";
-        frog.style.top = "-200px";
         msg.innerText = "💀 Se fue...";
-        levelBar.style.background = "red";
 
-        if (!alreadyPlayed) {
+        if (!sonidoYa) {
           croacSound.play();
-          alreadyPlayed = true;
+          sonidoYa = true;
         }
 
         jugando = false;
-        benitoBtn.style.display = "inline-block";
+        benitoBtn.style.display = "block";
       }
 
       requestAnimationFrame(update);
     }
+
+    update();
+
+    benitoBtn.onclick = function() {
+      alert("🚨 Benito ha sido llamado 😈");
+      location.reload();
+    };
+
+  })
+  .catch(function(err) {
+    alert("ERROR: Permite el micrófono");
+    console.log(err);
+  });
+
+};
+</script>
 
     update();
 
