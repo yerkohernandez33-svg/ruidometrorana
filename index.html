@@ -41,7 +41,8 @@
   </div>
   <p id="msg">Presiona iniciar</p>
   <h2 id="contador">Silencio: 0s</h2>
-  <button id="benitoBtn" style="display:none;">🚨 Llamar a Benito</button>
+  <button id="benitoBtn" style="display:none;">� Buscando a la rana...</button>
+  <canvas id="lupaCanvas" width="160" height="160" style="display:none; margin: 0 auto;"></canvas>
   <audio id="croac" src="croac.mp3"></audio>
 
   <script>
@@ -50,7 +51,7 @@
 
     function drawTacho(volume) {
       const v = Math.min(Math.max(volume, 0), 100);
-      const scale = 1 + (v / 100) * 0.5;
+      const scale = 1 + (v / 100) * 0.5; // crece hasta 1.5x
       let color, shadow;
       if (v < 33) {
         color = "#4caf50"; shadow = "#4caf50";
@@ -71,28 +72,28 @@
     // ── SKINS ──────────────────────────────────────────────────
     const skins = [
       [
-        "Rana1 skin 1 - fase 1.png",
-        "Rana1 skin 1 - fase 2.png",
-        "Rana1 skin 1 - fase 3.png",
-        "Rana1 skin 1 -fase 4.png"
+        "Rana1%20skin%201%20-%20fase%201.png",
+        "Rana1%20skin%201%20-%20fase%202.png",
+        "Rana1%20skin%201%20-%20fase%203.png",
+        "Rana1%20skin%201%20-fase%204.png"
       ],
       [
-        "Rana2 skin 2 - fase 1.png",
-        "Rana2 skin 2 - fase 2.png",
-        "Rana2 skin 2 - fase 3.png",
-        "Rana2 skin 2 - fase 4.png"
+        "Rana2%20skin%202%20-%20fase%201.png",
+        "Rana2%20skin%202%20-%20fase%202.png",
+        "Rana2%20skin%202%20-%20fase%203.png",
+        "Rana2%20skin%202%20-%20fase%204.png"
       ],
       [
-        "Rana3 skin 3 - fase 1.png",
-        "Rana3 skin 3 - fase 2.png",
-        "Rana3 skin 3 - fase 3.png",
-        "Rana3 skin 3 - fase 4.png"
+        "Rana3%20skin%203%20-%20fase%201.png",
+        "Rana3%20skin%203%20-%20fase%202.png",
+        "Rana3%20skin%203%20-%20fase%203.png",
+        "Rana3%20skin%203%20-%20fase%204.png"
       ],
       [
-        "Rana4 skin 4 - fase 1.png",
-        "Rana4 skin 4 - fase 2.png",
-        "Rana4 skin 4 - fase 3.png",
-        "Rana4 skin 4 - fase 4.png"
+        "Rana4%20skin%204%20-%20fase%201.png",
+        "Rana4%20skin%204%20-%20fase%202.png",
+        "Rana4%20skin%204%20-%20fase%203.png",
+        "Rana4%20skin%204%20-%20fase%204.png"
       ]
     ];
 
@@ -105,8 +106,10 @@
       return skins[skinActual];
     }
 
+    function resetScene() {}
     function triggerSplash() {
-      document.getElementById("frog").style.opacity = "0.3";
+      const frogEl = document.getElementById("frog");
+      frogEl.style.opacity = "0.3";
     }
 
     // ── SENSIBILIDAD ───────────────────────────────────────────
@@ -138,6 +141,7 @@
         document.getElementById("frog").src = "";
         document.getElementById("frog").style.opacity = "1";
         document.getElementById("benitoBtn").style.display = "none";
+        resetScene();
         drawTacho(0);
         return;
       }
@@ -166,7 +170,6 @@
         let jugando = true;
         let sonidoYa = false;
 
-        // fase 2 → 1: 10s | fase 3 → 1: 15s
         const tiempoParaCalmar = { 2: 10, 3: 15 };
 
         function update() {
@@ -179,6 +182,7 @@
 
           const umbralBajo = umbral * 0.43;
 
+          // Subir nivel por ruido (máx nivel 3)
           if (volume > umbral && nivel < 3) {
             nivel++;
             tiempoSilencio = 0;
@@ -193,6 +197,7 @@
               tiempoSilencio = 0;
             }
           } else if (nivel > 1) {
+            // ruido interrumpe el contador
             tiempoSilencio = 0;
             contador.innerText = "🔊 Silencia el ruido para calmar la rana";
           } else {
@@ -221,18 +226,19 @@
           msg.innerText = "🚨 Benito viene en camino...";
           let tiempo = 120;
           let intervalo = setInterval(() => {
-            contador.innerText = "🔍 Buscando... " + tiempo + "s";
+            contador.innerText = "Llegada en: " + tiempo + "s";
             tiempo--;
             if (tiempo <= 0) {
               clearInterval(intervalo);
+              // Benito llegó, reiniciar juego en nivel 1
               nivel = 1;
               tiempoSilencio = 0;
               jugando = true;
               sonidoYa = false;
               frog.src = skin[0];
-              frog.style.opacity = "1";
               msg.innerText = "🐸 Benito la trajo de vuelta. Silencio 😊";
               contador.innerText = "Silencio: 0s";
+              resetScene();
               update();
             }
           }, 1000);
