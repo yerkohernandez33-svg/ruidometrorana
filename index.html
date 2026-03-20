@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Ruidómetro Rana 🐸</title>
+  <title>Ruidometro Rana</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -15,126 +15,81 @@
       padding: 20px;
       gap: 12px;
     }
-
     h1 { font-size: 22px; color: #2e7d32; }
-
-    #frog {
-      width: 240px;
-      height: 240px;
-      object-fit: contain;
-      transition: opacity 0.4s ease;
-    }
-
-    /* Pulso */
+    #frog { width: 240px; height: 240px; object-fit: contain; transition: opacity 0.4s ease; }
     #pulso {
-      width: 80px; height: 80px;
-      border-radius: 50%;
-      background: #4caf50;
-      box-shadow: 0 0 16px #4caf50;
+      width: 80px; height: 80px; border-radius: 50%;
+      background: #4caf50; box-shadow: 0 0 16px #4caf50;
       transition: transform 0.1s ease, background 0.2s ease, box-shadow 0.2s ease;
     }
-
-    #msg {
-      font-size: 18px;
-      font-weight: bold;
-      color: #333;
-      min-height: 28px;
-    }
-
-    #contador {
-      font-size: 16px;
-      color: #555;
-      min-height: 24px;
-    }
-
-    /* Sensibilidad */
+    #msg { font-size: 18px; font-weight: bold; color: #333; min-height: 28px; }
+    #contador { font-size: 16px; color: #555; min-height: 24px; }
     #sensi-wrap {
-      width: 280px;
-      background: #fff;
-      border-radius: 12px;
-      padding: 12px 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      width: 280px; background: #fff; border-radius: 12px;
+      padding: 12px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
     #sensi-wrap label { font-size: 13px; color: #5d4037; font-weight: bold; }
     #sensiSlider { width: 100%; accent-color: #66bb6a; margin: 6px 0 2px; }
     #sensi-info { font-size: 12px; color: #795548; }
-
-    /* Botones */
     button {
-      padding: 10px 24px;
-      border: none;
-      border-radius: 24px;
-      font-size: 15px;
-      cursor: pointer;
-      font-weight: bold;
+      padding: 10px 24px; border: none; border-radius: 24px;
+      font-size: 15px; cursor: pointer; font-weight: bold;
     }
     #startBtn { background: #66bb6a; color: white; }
     #startBtn:hover { background: #43a047; }
-    #benitoBtn {
-      background: #ef5350;
-      color: white;
-      display: none;
-    }
+    #benitoBtn { background: #ef5350; color: white; display: none; }
     #benitoBtn:hover { background: #c62828; }
   </style>
 </head>
 <body>
-  <h1>🐸 Protege a la rana</h1>
-
+  <h1>Protege a la rana</h1>
   <img id="frog" src="rana1.png" alt="rana">
-
   <div id="pulso"></div>
-
   <p id="msg">Presiona iniciar</p>
   <p id="contador"></p>
-
   <div id="sensi-wrap">
-    <label for="sensiSlider">🎚️ Sensibilidad del micrófono</label>
+    <label for="sensiSlider">Sensibilidad del microfono</label>
     <input type="range" id="sensiSlider" min="10" max="90" value="50">
     <div id="sensi-info">Ambiente: <span id="ambienteLabel">Normal</span></div>
   </div>
-
   <button id="startBtn">Iniciar</button>
-  <button id="benitoBtn">🚨 Llamar a Benito</button>
-
+  <button id="benitoBtn">Llamar a Benito</button>
   <audio id="croac" src="croac.mp3"></audio>
 
   <script>
-    // ── PULSO ──────────────────────────────────────────────────
-    const pulso = document.getElementById("pulso");
-
-    function updatePulso(volume) {
-      const v = Math.min(Math.max(volume, 0), 100);
-      const scale = 1 + (v / 100) * 0.6;
-      let color;
-      if (v < 33) color = "#4caf50";
-      else if (v < 66) { const t = (v-33)/33; color = `rgb(${Math.round(76+t*179)},${Math.round(175-t*55)},50)`; }
-      else color = "#f44336";
-      pulso.style.transform = `scale(${scale})`;
-      pulso.style.background = color;
-      pulso.style.boxShadow = `0 0 ${16 + v * 0.3}px ${color}`;
-    }
-
-    // ── SENSIBILIDAD ───────────────────────────────────────────
-    const slider = document.getElementById("sensiSlider");
+    const pulso      = document.getElementById("pulso");
+    const frog       = document.getElementById("frog");
+    const msg        = document.getElementById("msg");
+    const contador   = document.getElementById("contador");
+    const benitoBtn  = document.getElementById("benitoBtn");
+    const startBtn   = document.getElementById("startBtn");
+    const croac      = document.getElementById("croac");
+    const slider     = document.getElementById("sensiSlider");
     const ambienteLabel = document.getElementById("ambienteLabel");
+
     let umbral = 50;
 
     slider.oninput = function () {
       umbral = parseInt(this.value);
-      if (umbral <= 25) ambienteLabel.innerText = "Muy silencioso";
+      if (umbral <= 25)      ambienteLabel.innerText = "Muy silencioso";
       else if (umbral <= 45) ambienteLabel.innerText = "Tranquilo";
       else if (umbral <= 65) ambienteLabel.innerText = "Normal";
-      else ambienteLabel.innerText = "Ruidoso";
+      else                   ambienteLabel.innerText = "Ruidoso";
     };
 
-    // ── LÓGICA PRINCIPAL ───────────────────────────────────────
-    const frog     = document.getElementById("frog");
-    const msg      = document.getElementById("msg");
-    const contador = document.getElementById("contador");
-    const benitoBtn= document.getElementById("benitoBtn");
-    const startBtn = document.getElementById("startBtn");
-    const croac    = document.getElementById("croac");
+    function updatePulso(v) {
+      v = Math.min(100, Math.max(0, v));
+      const scale = 1 + (v / 100) * 0.6;
+      let color;
+      if (v < 33) color = "#4caf50";
+      else if (v < 66) {
+        const t = (v - 33) / 33;
+        color = "rgb(" + Math.round(76 + t*179) + "," + Math.round(175 - t*55) + ",50)";
+      } else color = "#f44336";
+      pulso.style.transform = "scale(" + scale + ")";
+      pulso.style.background = color;
+      pulso.style.boxShadow = "0 0 " + (16 + v * 0.3) + "px " + color;
+    }
 
     let streamActivo = null;
     let jugandoGlobal = false;
@@ -156,34 +111,52 @@
       navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
         streamActivo = stream;
         jugandoGlobal = true;
-        startBtn.innerText = "😴 Detener";
+        startBtn.innerText = "Detener";
 
         const audioCtx = new AudioContext();
         const mic = audioCtx.createMediaStreamSource(stream);
         const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
         mic.connect(analyser);
         const data = new Uint8Array(analyser.frequencyBinCount);
 
-        // Estados
-        // fase 1 = silencio, fase 2 = alerta, fase 3 = quiere irse, fase 4 = se fue
         let fase = 1;
-        let tiempoSilencio = 0;   // segundos en silencio para volver a fase 1
+        let tiempoSilencio = 0;
+        let escapeTimer = 0;
         let jugando = true;
         let sonidoYa = false;
-
-        // Benito
         let benitoActivo = false;
         let tiempoBenito = 0;
         let benitoInterval = null;
+        let penalizando = false;
 
-        function iniciarBenito() {
+        function getVolume() {
+          analyser.getByteFrequencyData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+          return Math.min(100, Math.sqrt(sum / data.length) * 2.5);
+        }
+
+        benitoBtn.onclick = function () {
+          benitoBtn.style.display = "none";
           benitoActivo = true;
           tiempoBenito = 120;
-          benitoBtn.style.display = "none";
           frog.src = "rana3.png";
-          msg.innerText = "🔍 Benito buscando a la rana...";
+          frog.style.opacity = "1";
+          msg.innerText = "Benito buscando a la rana...";
+          contador.innerText = "Llegada en: 120s";
 
-          benitoInterval = setInterval(() => {
+          benitoInterval = setInterval(function () {
+            const vol = getVolume();
+            if (vol > 50 && !penalizando) {
+              penalizando = true;
+              tiempoBenito += 30;
+              msg.innerText = "Ruido! +30s a la espera";
+              setTimeout(function () {
+                penalizando = false;
+                if (benitoActivo) msg.innerText = "Benito buscando a la rana...";
+              }, 2000);
+            }
             tiempoBenito--;
             contador.innerText = "Llegada en: " + tiempoBenito + "s";
             if (tiempoBenito <= 0) {
@@ -191,112 +164,37 @@
               benitoActivo = false;
               fase = 1;
               tiempoSilencio = 0;
+              escapeTimer = 0;
               jugando = true;
               sonidoYa = false;
               frog.src = "rana1.png";
               frog.style.opacity = "1";
-              msg.innerText = "🐸 Benito la trajo de vuelta";
+              msg.innerText = "Benito la trajo de vuelta";
               contador.innerText = "";
               update();
             }
           }, 1000);
-        }
-
-        benitoBtn.onclick = iniciarBenito;
+        };
 
         function update() {
-          if (!jugandoGlobal) return;
-          analyser.getByteFrequencyData(data);
-          const volume = data.reduce((a, b) => a + b) / data.length;
-          updatePulso(volume);
+          if (!jugandoGlobal || benitoActivo) return;
 
-          // Si Benito está buscando, penalizar si hay ruido > 50
-          if (benitoActivo) {
-            if (volume > 50) {
-              tiempoBenito += 30;
-              msg.innerText = "� ¡Ruido! +30s a la espera";
-              setTimeout(() => { if (benitoActivo) msg.innerText = "🔍 Benito buscando a la rana..."; }, 1500);
-            }
-            requestAnimationFrame(update);
-            return;
-          }
+          const vol = getVolume();
+          updatePulso(vol);
 
           if (!jugando) { requestAnimationFrame(update); return; }
 
-          const umbralBajo = umbral * 0.35;
+          const silencioUmbral = 15; // volumen bajo = silencio
 
-          // Subir fase por ruido
-          if (volume > umbral * 1.3 && fase < 3) { fase = 3; tiempoSilencio = 0; }
-          else if (volume > umbral && fase < 2)   { fase = 2; tiempoSilencio = 0; }
+          // Subir fase
+          if (vol > 66 && fase < 3)      { fase = 3; tiempoSilencio = 0; escapeTimer = 0; }
+          else if (vol > 33 && fase < 2) { fase = 2; tiempoSilencio = 0; }
 
-          // Contar silencio para bajar a fase 1
-          if (volume < umbralBajo && fase > 1 && fase < 4) {
-            tiempoSilencio += 0.016;
-            const restante = Math.max(0, 15 - tiempoSilencio).toFixed(1);
-            contador.innerText = "🤫 Silencio: " + restante + "s para calmar";
-            if (tiempoSilencio >= 15) {
-              fase = 1;
-              tiempoSilencio = 0;
-            }
-          } else if (fase > 1 && fase < 4) {
-            tiempoSilencio = 0;
-            contador.innerText = "🔊 Baja el ruido para calmar la rana";
-          } else if (fase === 1) {
-            tiempoSilencio = 0;
-            contador.innerText = "";
-          }
-
-          // Actualizar imagen y mensaje
-          if (fase === 1) {
-            frog.src = "rana1.png";
-            msg.innerText = "😊 Todo tranquilo";
-          } else if (fase === 2) {
-            frog.src = "rana2.png";
-            msg.innerText = "👀 La rana está alerta";
-          } else if (fase === 3) {
-            frog.src = "rana3.png";
-            msg.innerText = "😰 ¡La rana quiere irse!";
-            // Si no bajan los decibeles en 15s, se va
-            if (tiempoSilencio === 0 && volume >= umbralBajo) {
-              // el contador de silencio no avanza → se activa timer de escape
-            }
-          } else if (fase === 4) {
-            frog.src = "rana4.png";
-            frog.style.opacity = "0.5";
-            msg.innerText = "🐸 ¡La rana se escapó!";
-            if (!sonidoYa) { croac.play(); sonidoYa = true; }
-            jugando = false;
-            contador.innerText = "";
-            benitoBtn.style.display = "block";
-          }
-
-          // Pasar de fase 3 a fase 4 si no hay silencio en 15s
-          if (fase === 3 && tiempoSilencio === 0 && volume >= umbralBajo) {
-            // usar un timer separado para el escape
-          }
-
-          requestAnimationFrame(update);
-        }
-
-        // Timer de escape: si está en fase 3 sin silencio por 15s → fase 4
-        let escapeTimer = 0;
-        let escapeActivo = false;
-
-        function escapeLoop() {
-          if (!jugandoGlobal) return;
-          if (!jugando) { setTimeout(escapeLoop, 200); return; }
-
-          analyser.getByteFrequencyData(data);
-          const volume = data.reduce((a, b) => a + b) / data.length;
-          const umbralBajo = umbral * 0.35;
-
+          // Timer de escape en fase 3
           if (fase === 3) {
-            if (volume >= umbralBajo) {
-              escapeTimer += 0.2;
-              if (escapeTimer >= 15) {
-                fase = 4;
-                escapeTimer = 0;
-              }
+            if (vol > silencioUmbral) {
+              escapeTimer += 0.016;
+              if (escapeTimer >= 15) { fase = 4; }
             } else {
               escapeTimer = 0;
             }
@@ -304,15 +202,46 @@
             escapeTimer = 0;
           }
 
-          setTimeout(escapeLoop, 200);
+          // Contar silencio para volver a fase 1
+          if (vol <= silencioUmbral && fase > 1 && fase < 4) {
+            tiempoSilencio += 0.016;
+            const restante = Math.max(0, 15 - tiempoSilencio).toFixed(1);
+            contador.innerText = "Silencio: " + restante + "s para calmar";
+            if (tiempoSilencio >= 15) { fase = 1; tiempoSilencio = 0; escapeTimer = 0; }
+          } else if (fase > 1 && fase < 4 && vol > silencioUmbral) {
+            tiempoSilencio = 0;
+            contador.innerText = "Baja el ruido para calmar la rana";
+          } else if (fase === 1) {
+            tiempoSilencio = 0;
+            contador.innerText = "";
+          }
+
+          // Imagen y mensaje por fase
+          if (fase === 1) {
+            frog.src = "rana1.png"; frog.style.opacity = "1";
+            msg.innerText = "Todo tranquilo";
+          } else if (fase === 2) {
+            frog.src = "rana2.png"; frog.style.opacity = "1";
+            msg.innerText = "La rana esta alerta";
+          } else if (fase === 3) {
+            frog.src = "rana3.png"; frog.style.opacity = "1";
+            msg.innerText = "La rana quiere irse!";
+          } else if (fase === 4) {
+            frog.src = "rana4.png"; frog.style.opacity = "0.5";
+            msg.innerText = "La rana se escapo!";
+            if (!sonidoYa) { croac.play(); sonidoYa = true; }
+            jugando = false;
+            contador.innerText = "";
+            benitoBtn.style.display = "block";
+          }
+
+          requestAnimationFrame(update);
         }
 
         update();
-        escapeLoop();
 
-      }).catch(() => alert("Permite el micrófono"));
+      }).catch(function () { alert("Permite el microfono"); });
     };
   </script>
 </body>
 </html>
-
