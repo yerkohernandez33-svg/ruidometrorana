@@ -57,14 +57,14 @@
   <audio id="croac" src="croac.mp3"></audio>
 
   <script>
-    const pulso      = document.getElementById("pulso");
-    const frog       = document.getElementById("frog");
-    const msg        = document.getElementById("msg");
-    const contador   = document.getElementById("contador");
-    const benitoBtn  = document.getElementById("benitoBtn");
-    const startBtn   = document.getElementById("startBtn");
-    const croac      = document.getElementById("croac");
-    const slider     = document.getElementById("sensiSlider");
+    const pulso         = document.getElementById("pulso");
+    const frog          = document.getElementById("frog");
+    const msg           = document.getElementById("msg");
+    const contador      = document.getElementById("contador");
+    const benitoBtn     = document.getElementById("benitoBtn");
+    const startBtn      = document.getElementById("startBtn");
+    const croac         = document.getElementById("croac");
+    const slider        = document.getElementById("sensiSlider");
     const ambienteLabel = document.getElementById("ambienteLabel");
 
     let umbral = 50;
@@ -122,6 +122,7 @@
 
         let fase = 1;
         let tiempoSilencio = 0;
+        let tiempoRuido = 0;
         let escapeTimer = 0;
         let jugando = true;
         let sonidoYa = false;
@@ -184,39 +185,52 @@
 
           if (!jugando) { requestAnimationFrame(update); return; }
 
-          const silencioUmbral = 15; // volumen bajo = silencio
+          const dt = 0.016;
+          const UMBRAL_RUIDO    = 33;
+          const UMBRAL_SILENCIO = 15;
+          const T_SUBIR  = 10;
+          const T_BAJAR  = 10;
+          const T_ESCAPE = 15;
 
-          // Subir fase
-          if (vol > 66 && fase < 3)      { fase = 3; tiempoSilencio = 0; escapeTimer = 0; }
-          else if (vol > 33 && fase < 2) { fase = 2; tiempoSilencio = 0; }
+          if (fase < 4) {
+            const hayRuido    = vol > UMBRAL_RUIDO;
+            const haySilencio = vol <= UMBRAL_SILENCIO;
 
-          // Timer de escape en fase 3
-          if (fase === 3) {
-            if (vol > silencioUmbral) {
-              escapeTimer += 0.016;
-              if (escapeTimer >= 15) { fase = 4; }
+            if (hayRuido) {
+              tiempoSilencio = 0;
+              tiempoRuido += dt;
+              if (fase === 1 && tiempoRuido >= T_SUBIR) { fase = 2; tiempoRuido = 0; }
+              if (fase === 2 && tiempoRuido >= T_SUBIR) { fase = 3; tiempoRuido = 0; }
+              if (fase === 3) {
+                escapeTimer += dt;
+                if (escapeTimer >= T_ESCAPE) { fase = 4; }
+              }
+            } else if (haySilencio) {
+              tiempoRuido = 0;
+              escapeTimer = 0;
+              if (fase > 1) {
+                tiempoSilencio += dt;
+                if (tiempoSilencio >= T_BAJAR) { fase--; tiempoSilencio = 0; }
+              }
             } else {
+              tiempoRuido = 0;
+              tiempoSilencio = 0;
               escapeTimer = 0;
             }
-          } else {
-            escapeTimer = 0;
           }
 
-          // Contar silencio para volver a fase 1
-          if (vol <= silencioUmbral && fase > 1 && fase < 4) {
-            tiempoSilencio += 0.016;
-            const restante = Math.max(0, 15 - tiempoSilencio).toFixed(1);
-            contador.innerText = "Silencio: " + restante + "s para calmar";
-            if (tiempoSilencio >= 15) { fase = 1; tiempoSilencio = 0; escapeTimer = 0; }
-          } else if (fase > 1 && fase < 4 && vol > silencioUmbral) {
-            tiempoSilencio = 0;
-            contador.innerText = "Baja el ruido para calmar la rana";
-          } else if (fase === 1) {
-            tiempoSilencio = 0;
+          if (fase === 1) {
             contador.innerText = "";
+          } else if (hayRuido && tiempoRuido > 0) {
+            contador.innerText = "Ruido: " + tiempoRuido.toFixed(1) + "s / " + T_SUBIR + "s";
+          } else if (fase > 1 && tiempoSilencio > 0) {
+            contador.innerText = "Silencio: " + tiempoSilencio.toFixed(1) + "s / " + T_BAJAR + "s";
+          } else if (fase === 3 && escapeTimer > 0) {
+            contador.innerText = "Escapando en: " + (T_ESCAPE - escapeTimer).toFixed(1) + "s";
+          } else {
+            contador.innerText = fase > 1 ? "Baja el ruido para calmar la rana" : "";
           }
 
-          // Imagen y mensaje por fase
           if (fase === 1) {
             frog.src = "rana1.png"; frog.style.opacity = "1";
             msg.innerText = "Todo tranquilo";
